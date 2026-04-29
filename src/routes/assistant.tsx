@@ -9,8 +9,6 @@ import { streamChat, speak } from "@/lib/assistant-client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,6 +18,7 @@ import {
   Send, Mic, MicOff, Image as ImageIcon, X, Plus, Trash2, Volume2, VolumeX,
   Camera, CameraOff, Loader2, CheckCircle2, Circle,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/assistant")({
   head: () => ({
