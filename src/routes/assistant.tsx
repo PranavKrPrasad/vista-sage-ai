@@ -150,6 +150,8 @@ function ChatPanel({ userId }: { userId: string }) {
   const speechLang = profile?.preferred_language === "en" ? "en-US" : profile?.preferred_language || "en-US";
   const speech = useSpeechRecognition(speechLang);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [ttsAnalyser, setTtsAnalyser] = useState<AnalyserNode | null>(null);
+  const [ttsActive, setTtsActive] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Load profile, memories, latest conversation
