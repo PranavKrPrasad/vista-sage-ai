@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEmotionDetector, EMOTION_META, type Emotion } from "@/lib/emotion-detector";
 import { useSpeechRecognition } from "@/lib/speech-recognition";
 import { streamChat, speak } from "@/lib/assistant-client";
+import { VoiceWaveform as TtsWaveform } from "@/components/VoiceWaveform";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -149,6 +150,8 @@ function ChatPanel({ userId }: { userId: string }) {
   const speechLang = profile?.preferred_language === "en" ? "en-US" : profile?.preferred_language || "en-US";
   const speech = useSpeechRecognition(speechLang);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [ttsAnalyser, setTtsAnalyser] = useState<AnalyserNode | null>(null);
+  const [ttsActive, setTtsActive] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Load profile, memories, latest conversation
@@ -206,6 +209,7 @@ function ChatPanel({ userId }: { userId: string }) {
   const stopAudio = () => {
     audioRef.current?.pause();
     audioRef.current = null;
+    setTtsActive(false);
   };
 
   const send = async () => {
@@ -263,8 +267,15 @@ function ChatPanel({ userId }: { userId: string }) {
       // Speak if enabled
       if (voiceReplyOn && assistantText.trim()) {
         stopAudio();
-        const audio = await speak(assistantText, profile?.voice_id);
-        audioRef.current = audio;
+        const result = await speak(assistantText, profile?.voice_id);
+        if (result) {
+          audioRef.current = result.audio;
+          setTtsAnalyser(result.analyser);
+          setTtsActive(true);
+          const onEnd = () => setTtsActive(false);
+          result.audio.addEventListener("ended", onEnd);
+          result.audio.addEventListener("pause", onEnd);
+        }
       }
 
       // Update conversation title from first message
@@ -306,6 +317,13 @@ function ChatPanel({ userId }: { userId: string }) {
             <p className="text-base font-medium">{greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}</p>
           </div>
           <div className="flex items-center gap-2">
+            {voiceReplyOn && (
+              <TtsWaveform
+                analyser={ttsAnalyser}
+                active={ttsActive}
+                className="h-8 w-32 opacity-90"
+              />
+            )}
             <Button
               variant={voiceReplyOn ? "default" : "outline"}
               size="sm"
