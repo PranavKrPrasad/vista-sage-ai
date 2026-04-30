@@ -317,6 +317,13 @@ function ChatPanel({ userId }: { userId: string }) {
             <p className="text-base font-medium">{greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}</p>
           </div>
           <div className="flex items-center gap-2">
+            {voiceReplyOn && (
+              <TtsWaveform
+                analyser={ttsAnalyser}
+                active={ttsActive}
+                className="h-8 w-32 opacity-90"
+              />
+            )}
             <Button
               variant={voiceReplyOn ? "default" : "outline"}
               size="sm"
