@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEmotionDetector, EMOTION_META, type Emotion } from "@/lib/emotion-detector";
 import { useSpeechRecognition } from "@/lib/speech-recognition";
 import { streamChat, speak } from "@/lib/assistant-client";
+import { VoiceWaveform } from "@/components/VoiceWaveform";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
