@@ -267,8 +267,15 @@ function ChatPanel({ userId }: { userId: string }) {
       // Speak if enabled
       if (voiceReplyOn && assistantText.trim()) {
         stopAudio();
-        const audio = await speak(assistantText, profile?.voice_id);
-        audioRef.current = audio;
+        const result = await speak(assistantText, profile?.voice_id);
+        if (result) {
+          audioRef.current = result.audio;
+          setTtsAnalyser(result.analyser);
+          setTtsActive(true);
+          const onEnd = () => setTtsActive(false);
+          result.audio.addEventListener("ended", onEnd);
+          result.audio.addEventListener("pause", onEnd);
+        }
       }
 
       // Update conversation title from first message
