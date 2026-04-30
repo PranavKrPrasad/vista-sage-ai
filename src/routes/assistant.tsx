@@ -209,6 +209,7 @@ function ChatPanel({ userId }: { userId: string }) {
   const stopAudio = () => {
     audioRef.current?.pause();
     audioRef.current = null;
+    setTtsActive(false);
   };
 
   const send = async () => {
