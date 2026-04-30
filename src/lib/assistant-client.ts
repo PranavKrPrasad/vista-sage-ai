@@ -69,7 +69,24 @@ export async function streamChat(opts: {
   }
 }
 
-export async function speak(text: string, voiceId?: string): Promise<HTMLAudioElement | null> {
+export interface SpeakResult {
+  audio: HTMLAudioElement;
+  analyser: AnalyserNode;
+  context: AudioContext;
+}
+
+// Shared AudioContext — browsers cap how many can exist concurrently.
+let sharedAudioContext: AudioContext | null = null;
+function getAudioContext(): AudioContext {
+  if (!sharedAudioContext || sharedAudioContext.state === "closed") {
+    const Ctor = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
+    sharedAudioContext = new Ctor();
+  }
+  if (sharedAudioContext.state === "suspended") void sharedAudioContext.resume();
+  return sharedAudioContext;
+}
+
+export async function speak(text: string, voiceId?: string): Promise<SpeakResult | null> {
   try {
     const resp = await fetch(`${SUPABASE_URL}/functions/v1/tts`, {
       method: "POST",
@@ -80,9 +97,20 @@ export async function speak(text: string, voiceId?: string): Promise<HTMLAudioEl
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
+    audio.crossOrigin = "anonymous";
+
+    // Wire up Web Audio analyser for waveform visualisation.
+    const context = getAudioContext();
+    const source = context.createMediaElementSource(audio);
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.75;
+    source.connect(analyser);
+    analyser.connect(context.destination);
+
     await audio.play();
     audio.addEventListener("ended", () => URL.revokeObjectURL(url));
-    return audio;
+    return { audio, analyser, context };
   } catch {
     return null;
   }
