@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import {
   Cpu, MessageSquare, ListTodo, Brain, Settings as SettingsIcon, LogOut,
   Send, Mic, MicOff, Image as ImageIcon, X, Plus, Trash2, Volume2, VolumeX,
-  Camera, CameraOff, Loader2, CheckCircle2, Circle,
+  Camera, CameraOff, Loader2, CheckCircle2, Circle, Sparkles, Wand2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/assistant")({
