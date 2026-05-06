@@ -114,6 +114,38 @@ function Sidebar({ tab, setTab, signOut }: { tab: string; setTab: (t: any) => vo
   );
 }
 
+function MobileNav({ tab, setTab, signOut }: { tab: string; setTab: (t: any) => void; signOut: () => Promise<void> }) {
+  const items = [
+    { id: "chat", icon: MessageSquare, label: "Chat" },
+    { id: "tasks", icon: ListTodo, label: "Tasks" },
+    { id: "memory", icon: Brain, label: "Memory" },
+    { id: "settings", icon: SettingsIcon, label: "Settings" },
+  ];
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-border bg-background/80 backdrop-blur md:hidden">
+      {items.map((item) => (
+        <button
+          key={item.id}
+          onClick={() => setTab(item.id)}
+          className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] transition ${
+            tab === item.id ? "text-primary" : "text-muted-foreground"
+          }`}
+        >
+          <item.icon className="h-5 w-5" />
+          {item.label}
+        </button>
+      ))}
+      <button
+        onClick={signOut}
+        className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] text-muted-foreground transition hover:text-foreground"
+      >
+        <LogOut className="h-5 w-5" />
+        Sign out
+      </button>
+    </nav>
+  );
+}
+
 function VoiceWaveform({ active }: { active: boolean }) {
   return (
     <div className="flex h-8 items-center gap-1">
