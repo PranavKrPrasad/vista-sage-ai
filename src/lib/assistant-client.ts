@@ -116,4 +116,36 @@ export async function speak(text: string, voiceId?: string): Promise<SpeakResult
   }
 }
 
+// ── Image Generation ──
+
+export interface ImageGenResult {
+  text: string;
+  images: { type: string; image_url: { url: string } }[];
+}
+
+export async function generateImage(prompt: string, editImage?: string | null): Promise<ImageGenResult> {
+  const resp = await fetch(`${SUPABASE_URL}/functions/v1/image-gen`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${SUPABASE_KEY}` },
+    body: JSON.stringify({ prompt, editImage }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ error: "Image generation failed" }));
+    throw new Error(err.error || `Image generation failed (${resp.status})`);
+  }
+  return resp.json();
+}
+
+// Detect if a user message is asking for image generation
+const IMAGE_GEN_PATTERNS = [
+  /\b(generate|create|make|draw|paint|design|sketch|render|produce)\b.{0,30}\b(image|picture|photo|illustration|art|artwork|icon|logo|poster|banner|wallpaper|avatar|portrait)\b/i,
+  /\b(image|picture|photo|illustration|art|artwork)\b.{0,30}\b(of|showing|depicting|with|featuring)\b/i,
+  /\b(visuali[sz]e|imagine)\b/i,
+  /\b(edit|modify|change|transform|style|restyle)\b.{0,20}\b(this|the|my|that)\b.{0,20}\b(image|picture|photo)\b/i,
+];
+
+export function isImageGenRequest(text: string): boolean {
+  return IMAGE_GEN_PATTERNS.some((p) => p.test(text));
+}
+
 export { supabase };

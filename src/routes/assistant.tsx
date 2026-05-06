@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmotionDetector, EMOTION_META, type Emotion } from "@/lib/emotion-detector";
 import { useSpeechRecognition } from "@/lib/speech-recognition";
-import { streamChat, speak } from "@/lib/assistant-client";
+import { streamChat, speak, generateImage, isImageGenRequest } from "@/lib/assistant-client";
 import { VoiceWaveform as TtsWaveform } from "@/components/VoiceWaveform";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import {
   Cpu, MessageSquare, ListTodo, Brain, Settings as SettingsIcon, LogOut,
   Send, Mic, MicOff, Image as ImageIcon, X, Plus, Trash2, Volume2, VolumeX,
-  Camera, CameraOff, Loader2, CheckCircle2, Circle,
+  Camera, CameraOff, Loader2, CheckCircle2, Circle, Sparkles,
 } from "lucide-react";
 
 export const Route = createFileRoute("/assistant")({
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/assistant")({
   component: AssistantPage,
 });
 
-type ChatMsg = { id: string; role: "user" | "assistant"; content: string; emotion?: string | null; image_url?: string | null; created_at: string };
+type ChatMsg = { id: string; role: "user" | "assistant"; content: string; emotion?: string | null; image_url?: string | null; generated_images?: string[]; created_at: string };
 type Reminder = { id: string; title: string; notes: string | null; due_at: string | null; completed: boolean };
 type Memory = { id: string; content: string; category: string; importance: number };
 type Profile = { id: string; display_name: string | null; preferred_language: string; voice_id: string; assistant_tone: string };
@@ -269,38 +269,67 @@ function ChatPanel({ userId }: { userId: string }) {
       const sentImage = imageData;
       setImageData(null);
 
-      // Stream assistant response
-      const apiMessages = [...messages, userMsg as ChatMsg].map((m) => ({ role: m.role, content: m.content }));
-      let assistantText = "";
-      const placeholderId = `streaming-${Date.now()}`;
-      setMessages((prev) => [...prev, { id: placeholderId, role: "assistant", content: "", created_at: new Date().toISOString() }]);
+      // Determine if this is an image generation request
+      const shouldGenImage = isImageGenRequest(text);
+      let finalAssistantText = "";
 
-      await streamChat({
-        messages: apiMessages,
-        emotion,
-        tone: profile?.assistant_tone,
-        language: profile?.preferred_language,
-        memories: memories.map((m) => m.content),
-        imageBase64: sentImage,
-        onDelta: (chunk) => {
-          assistantText += chunk;
-          setMessages((prev) => prev.map((m) => (m.id === placeholderId ? { ...m, content: assistantText } : m)));
-        },
-      });
+      if (shouldGenImage) {
+        // Image generation flow
+        const placeholderId = `streaming-${Date.now()}`;
+        setMessages((prev) => [...prev, { id: placeholderId, role: "assistant", content: "🎨 Generating image…", created_at: new Date().toISOString() }]);
 
-      // Persist assistant msg
-      const { data: aMsg, error: aErr } = await supabase
-        .from("messages")
-        .insert({ conversation_id: convId, user_id: userId, role: "assistant", content: assistantText })
-        .select()
-        .single();
-      if (aErr) throw aErr;
-      setMessages((prev) => prev.map((m) => (m.id === placeholderId ? (aMsg as ChatMsg) : m)));
+        try {
+          const result = await generateImage(text, sentImage);
+          const generatedImgs = result.images.map((img) => img.image_url.url);
+          finalAssistantText = result.text || "Here's your generated image:";
+
+          const { data: aMsg, error: aErr } = await supabase
+            .from("messages")
+            .insert({ conversation_id: convId, user_id: userId, role: "assistant", content: finalAssistantText })
+            .select()
+            .single();
+          if (aErr) throw aErr;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === placeholderId ? { ...(aMsg as ChatMsg), generated_images: generatedImgs } : m
+            )
+          );
+        } catch (imgErr: any) {
+          finalAssistantText = "";
+          setMessages((prev) => prev.map((m) => (m.id === placeholderId ? { ...m, content: `❌ ${imgErr.message}` } : m)));
+        }
+      } else {
+        // Standard streaming chat flow
+        const apiMessages = [...messages, userMsg as ChatMsg].map((m) => ({ role: m.role, content: m.content }));
+        const placeholderId = `streaming-${Date.now()}`;
+        setMessages((prev) => [...prev, { id: placeholderId, role: "assistant", content: "", created_at: new Date().toISOString() }]);
+
+        await streamChat({
+          messages: apiMessages,
+          emotion,
+          tone: profile?.assistant_tone,
+          language: profile?.preferred_language,
+          memories: memories.map((m) => m.content),
+          imageBase64: sentImage,
+          onDelta: (chunk) => {
+            finalAssistantText += chunk;
+            setMessages((prev) => prev.map((m) => (m.id === placeholderId ? { ...m, content: finalAssistantText } : m)));
+          },
+        });
+
+        const { data: aMsg, error: aErr } = await supabase
+          .from("messages")
+          .insert({ conversation_id: convId, user_id: userId, role: "assistant", content: finalAssistantText })
+          .select()
+          .single();
+        if (aErr) throw aErr;
+        setMessages((prev) => prev.map((m) => (m.id === placeholderId ? (aMsg as ChatMsg) : m)));
+      }
 
       // Speak if enabled
-      if (voiceReplyOn && assistantText.trim()) {
+      if (voiceReplyOn && finalAssistantText.trim()) {
         stopAudio();
-        const result = await speak(assistantText, profile?.voice_id);
+        const result = await speak(finalAssistantText, profile?.voice_id);
         if (result) {
           audioRef.current = result.audio;
           setTtsAnalyser(result.analyser);
@@ -391,8 +420,19 @@ function ChatPanel({ userId }: { userId: string }) {
                 </div>
                 <h3 className="text-xl font-semibold">JARVIS online</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Ask me anything. Talk, type, share an image, or enable the camera so I can sense your mood.
+                  Ask me anything, generate images, analyze photos, or enable the camera so I can sense your mood.
                 </p>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {["Generate a sunset painting", "Create a logo for my brand", "Explain quantum computing", "Analyze this image"].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setInput(s)}
+                      className="rounded-full border border-border/50 bg-background/40 px-3 py-1.5 text-xs text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             {messages.map((m) => (
@@ -537,16 +577,40 @@ function MessageBubble({ msg }: { msg: ChatMsg }) {
           {msg.image_url && (
             <img src={msg.image_url} alt="Attached" className="mb-2 max-h-60 rounded-lg object-cover" />
           )}
+          {msg.generated_images && msg.generated_images.length > 0 && (
+            <div className="mb-2 space-y-2">
+              {msg.generated_images.map((imgUrl, idx) => (
+                <div key={idx} className="group relative">
+                  <img
+                    src={imgUrl}
+                    alt={`Generated ${idx + 1}`}
+                    className="max-h-96 w-full rounded-lg object-contain border border-border/30"
+                  />
+                  <a
+                    href={imgUrl}
+                    download={`jarvis-image-${idx + 1}.png`}
+                    className="absolute bottom-2 right-2 rounded-lg bg-background/80 px-3 py-1.5 text-xs font-medium opacity-0 backdrop-blur transition group-hover:opacity-100"
+                  >
+                    ⬇ Download
+                  </a>
+                  <div className="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-background/80 px-2 py-1 text-xs backdrop-blur">
+                    <Sparkles className="h-3 w-3 text-primary" /> AI Generated
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {msg.content && (
             <div className={`prose prose-sm prose-invert max-w-none ${isUser ? "text-foreground" : ""}`}>
               <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
           )}
-          {!msg.content && <span className="text-sm text-muted-foreground">…</span>}
+          {!msg.content && !msg.generated_images?.length && <span className="text-sm text-muted-foreground">…</span>}
         </div>
         <div className={`mt-1 text-xs text-muted-foreground ${isUser ? "text-right" : "text-left"}`}>
           {isUser ? "You" : "JARVIS"} · {time}
           {msg.emotion && isUser && ` · ${EMOTION_META[msg.emotion as Emotion]?.emoji ?? ""}`}
+          {msg.generated_images && msg.generated_images.length > 0 && !isUser && " · 🎨 Image"}
         </div>
       </div>
     </div>
