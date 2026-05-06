@@ -420,8 +420,19 @@ function ChatPanel({ userId }: { userId: string }) {
                 </div>
                 <h3 className="text-xl font-semibold">JARVIS online</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Ask me anything. Talk, type, share an image, or enable the camera so I can sense your mood.
+                  Ask me anything, generate images, analyze photos, or enable the camera so I can sense your mood.
                 </p>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {["Generate a sunset painting", "Create a logo for my brand", "Explain quantum computing", "Analyze this image"].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setInput(s)}
+                      className="rounded-full border border-border/50 bg-background/40 px-3 py-1.5 text-xs text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             {messages.map((m) => (
