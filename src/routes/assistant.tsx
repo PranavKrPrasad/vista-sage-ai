@@ -327,9 +327,9 @@ function ChatPanel({ userId }: { userId: string }) {
       }
 
       // Speak if enabled
-      if (voiceReplyOn && assistantText.trim()) {
+      if (voiceReplyOn && finalAssistantText.trim()) {
         stopAudio();
-        const result = await speak(assistantText, profile?.voice_id);
+        const result = await speak(finalAssistantText, profile?.voice_id);
         if (result) {
           audioRef.current = result.audio;
           setTtsAnalyser(result.analyser);
