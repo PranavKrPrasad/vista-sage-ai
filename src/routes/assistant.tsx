@@ -451,11 +451,11 @@ function ChatPanel({ userId }: { userId: string }) {
                   className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90"
                   size="sm"
                 >
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="mr-1 h-4 w-4" /> Send</>}
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Send</span></>}
                 </Button>
               </div>
             </div>
-            <p className="mt-2 text-center text-xs text-muted-foreground">
+            <p className="mt-2 hidden text-center text-xs text-muted-foreground sm:block">
               Press Enter to send · Shift+Enter for newline
             </p>
           </div>
