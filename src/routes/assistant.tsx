@@ -30,7 +30,7 @@ export const Route = createFileRoute("/assistant")({
   component: AssistantPage,
 });
 
-type ChatMsg = { id: string; role: "user" | "assistant"; content: string; emotion?: string | null; image_url?: string | null; created_at: string };
+type ChatMsg = { id: string; role: "user" | "assistant"; content: string; emotion?: string | null; image_url?: string | null; generated_images?: string[]; created_at: string };
 type Reminder = { id: string; title: string; notes: string | null; due_at: string | null; completed: boolean };
 type Memory = { id: string; content: string; category: string; importance: number };
 type Profile = { id: string; display_name: string | null; preferred_language: string; voice_id: string; assistant_tone: string };
