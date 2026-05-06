@@ -269,33 +269,65 @@ function ChatPanel({ userId }: { userId: string }) {
       const sentImage = imageData;
       setImageData(null);
 
-      // Stream assistant response
-      const apiMessages = [...messages, userMsg as ChatMsg].map((m) => ({ role: m.role, content: m.content }));
-      let assistantText = "";
-      const placeholderId = `streaming-${Date.now()}`;
-      setMessages((prev) => [...prev, { id: placeholderId, role: "assistant", content: "", created_at: new Date().toISOString() }]);
+      // Determine if this is an image generation request
+      const shouldGenImage = isImageGenRequest(text);
 
-      await streamChat({
-        messages: apiMessages,
-        emotion,
-        tone: profile?.assistant_tone,
-        language: profile?.preferred_language,
-        memories: memories.map((m) => m.content),
-        imageBase64: sentImage,
-        onDelta: (chunk) => {
-          assistantText += chunk;
-          setMessages((prev) => prev.map((m) => (m.id === placeholderId ? { ...m, content: assistantText } : m)));
-        },
-      });
+      if (shouldGenImage) {
+        // Image generation flow
+        const placeholderId = `streaming-${Date.now()}`;
+        setMessages((prev) => [...prev, { id: placeholderId, role: "assistant", content: "🎨 Generating image…", created_at: new Date().toISOString() }]);
 
-      // Persist assistant msg
-      const { data: aMsg, error: aErr } = await supabase
-        .from("messages")
-        .insert({ conversation_id: convId, user_id: userId, role: "assistant", content: assistantText })
-        .select()
-        .single();
-      if (aErr) throw aErr;
-      setMessages((prev) => prev.map((m) => (m.id === placeholderId ? (aMsg as ChatMsg) : m)));
+        try {
+          const result = await generateImage(text, sentImage);
+          const generatedImgs = result.images.map((img) => img.image_url.url);
+          const assistantText = result.text || "Here's your generated image:";
+
+          // Persist assistant msg
+          const { data: aMsg, error: aErr } = await supabase
+            .from("messages")
+            .insert({ conversation_id: convId, user_id: userId, role: "assistant", content: assistantText })
+            .select()
+            .single();
+          if (aErr) throw aErr;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === placeholderId ? { ...(aMsg as ChatMsg), generated_images: generatedImgs } : m
+            )
+          );
+        } catch (imgErr: any) {
+          setMessages((prev) => prev.map((m) => (m.id === placeholderId ? { ...m, content: `❌ ${imgErr.message}` } : m)));
+        }
+      } else {
+        // Standard streaming chat flow
+        const apiMessages = [...messages, userMsg as ChatMsg].map((m) => ({ role: m.role, content: m.content }));
+        let assistantText = "";
+        const placeholderId = `streaming-${Date.now()}`;
+        setMessages((prev) => [...prev, { id: placeholderId, role: "assistant", content: "", created_at: new Date().toISOString() }]);
+
+        await streamChat({
+          messages: apiMessages,
+          emotion,
+          tone: profile?.assistant_tone,
+          language: profile?.preferred_language,
+          memories: memories.map((m) => m.content),
+          imageBase64: sentImage,
+          onDelta: (chunk) => {
+            assistantText += chunk;
+            setMessages((prev) => prev.map((m) => (m.id === placeholderId ? { ...m, content: assistantText } : m)));
+          },
+        });
+
+        // Persist assistant msg
+        const { data: aMsg, error: aErr } = await supabase
+          .from("messages")
+          .insert({ conversation_id: convId, user_id: userId, role: "assistant", content: assistantText })
+          .select()
+          .single();
+        if (aErr) throw aErr;
+        setMessages((prev) => prev.map((m) => (m.id === placeholderId ? (aMsg as ChatMsg) : m)));
+      }
+
+      const assistantText = messages[messages.length - 1]?.content || "";
 
       // Speak if enabled
       if (voiceReplyOn && assistantText.trim()) {
