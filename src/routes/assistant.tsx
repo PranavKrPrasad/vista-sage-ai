@@ -350,10 +350,11 @@ function ChatPanel({ userId }: { userId: string }) {
               <Cpu className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-            <h2 className="text-sm font-semibold tracking-wider text-muted-foreground">SESSION</h2>
-            <p className="text-base font-medium">{greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}</p>
+              <h2 className="text-sm font-semibold tracking-wider text-muted-foreground">SESSION</h2>
+              <p className="text-base font-medium">{greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             {voiceReplyOn && (
               <TtsWaveform
                 analyser={ttsAnalyser}
