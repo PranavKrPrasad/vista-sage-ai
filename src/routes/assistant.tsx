@@ -271,6 +271,7 @@ function ChatPanel({ userId }: { userId: string }) {
 
       // Determine if this is an image generation request
       const shouldGenImage = isImageGenRequest(text);
+      let finalAssistantText = "";
 
       if (shouldGenImage) {
         // Image generation flow
@@ -280,12 +281,11 @@ function ChatPanel({ userId }: { userId: string }) {
         try {
           const result = await generateImage(text, sentImage);
           const generatedImgs = result.images.map((img) => img.image_url.url);
-          const assistantText = result.text || "Here's your generated image:";
+          finalAssistantText = result.text || "Here's your generated image:";
 
-          // Persist assistant msg
           const { data: aMsg, error: aErr } = await supabase
             .from("messages")
-            .insert({ conversation_id: convId, user_id: userId, role: "assistant", content: assistantText })
+            .insert({ conversation_id: convId, user_id: userId, role: "assistant", content: finalAssistantText })
             .select()
             .single();
           if (aErr) throw aErr;
@@ -295,12 +295,12 @@ function ChatPanel({ userId }: { userId: string }) {
             )
           );
         } catch (imgErr: any) {
+          finalAssistantText = "";
           setMessages((prev) => prev.map((m) => (m.id === placeholderId ? { ...m, content: `❌ ${imgErr.message}` } : m)));
         }
       } else {
         // Standard streaming chat flow
         const apiMessages = [...messages, userMsg as ChatMsg].map((m) => ({ role: m.role, content: m.content }));
-        let assistantText = "";
         const placeholderId = `streaming-${Date.now()}`;
         setMessages((prev) => [...prev, { id: placeholderId, role: "assistant", content: "", created_at: new Date().toISOString() }]);
 
@@ -312,22 +312,19 @@ function ChatPanel({ userId }: { userId: string }) {
           memories: memories.map((m) => m.content),
           imageBase64: sentImage,
           onDelta: (chunk) => {
-            assistantText += chunk;
-            setMessages((prev) => prev.map((m) => (m.id === placeholderId ? { ...m, content: assistantText } : m)));
+            finalAssistantText += chunk;
+            setMessages((prev) => prev.map((m) => (m.id === placeholderId ? { ...m, content: finalAssistantText } : m)));
           },
         });
 
-        // Persist assistant msg
         const { data: aMsg, error: aErr } = await supabase
           .from("messages")
-          .insert({ conversation_id: convId, user_id: userId, role: "assistant", content: assistantText })
+          .insert({ conversation_id: convId, user_id: userId, role: "assistant", content: finalAssistantText })
           .select()
           .single();
         if (aErr) throw aErr;
         setMessages((prev) => prev.map((m) => (m.id === placeholderId ? (aMsg as ChatMsg) : m)));
       }
-
-      const assistantText = messages[messages.length - 1]?.content || "";
 
       // Speak if enabled
       if (voiceReplyOn && assistantText.trim()) {
