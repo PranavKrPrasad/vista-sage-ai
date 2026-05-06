@@ -63,12 +63,13 @@ function AssistantPage() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar tab={tab} setTab={setTab} signOut={signOut} />
-      <main className="flex flex-1 flex-col overflow-hidden">
+      <main className="flex flex-1 flex-col overflow-hidden pb-16 md:pb-0">
         {tab === "chat" && <ChatPanel userId={user.id} />}
         {tab === "tasks" && <RemindersPanel userId={user.id} />}
         {tab === "memory" && <MemoryPanel userId={user.id} />}
         {tab === "settings" && <SettingsPanel userId={user.id} />}
       </main>
+      <MobileNav tab={tab} setTab={setTab} signOut={signOut} />
     </div>
   );
 }
@@ -110,6 +111,38 @@ function Sidebar({ tab, setTab, signOut }: { tab: string; setTab: (t: any) => vo
         </Button>
       </div>
     </aside>
+  );
+}
+
+function MobileNav({ tab, setTab, signOut }: { tab: string; setTab: (t: any) => void; signOut: () => Promise<void> }) {
+  const items = [
+    { id: "chat", icon: MessageSquare, label: "Chat" },
+    { id: "tasks", icon: ListTodo, label: "Tasks" },
+    { id: "memory", icon: Brain, label: "Memory" },
+    { id: "settings", icon: SettingsIcon, label: "Settings" },
+  ];
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-border bg-background/80 backdrop-blur md:hidden">
+      {items.map((item) => (
+        <button
+          key={item.id}
+          onClick={() => setTab(item.id)}
+          className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] transition ${
+            tab === item.id ? "text-primary" : "text-muted-foreground"
+          }`}
+        >
+          <item.icon className="h-5 w-5" />
+          {item.label}
+        </button>
+      ))}
+      <button
+        onClick={signOut}
+        className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] text-muted-foreground transition hover:text-foreground"
+      >
+        <LogOut className="h-5 w-5" />
+        Sign out
+      </button>
+    </nav>
   );
 }
 
@@ -311,17 +344,22 @@ function ChatPanel({ userId }: { userId: string }) {
       {/* Chat column */}
       <section className="flex flex-1 flex-col">
         {/* Header */}
-        <header className="glass-strong flex items-center justify-between border-b border-border px-6 py-3">
-          <div>
-            <h2 className="text-sm font-semibold tracking-wider text-muted-foreground">SESSION</h2>
-            <p className="text-base font-medium">{greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}</p>
+        <header className="glass-strong flex items-center justify-between border-b border-border px-4 py-3 md:px-6">
+          <div className="flex items-center gap-3">
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent md:hidden">
+              <Cpu className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold tracking-wider text-muted-foreground">SESSION</h2>
+              <p className="text-base font-medium">{greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             {voiceReplyOn && (
               <TtsWaveform
                 analyser={ttsAnalyser}
                 active={ttsActive}
-                className="h-8 w-32 opacity-90"
+                className="h-8 w-20 opacity-90 md:w-32"
               />
             )}
             <Button
@@ -413,11 +451,11 @@ function ChatPanel({ userId }: { userId: string }) {
                   className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90"
                   size="sm"
                 >
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="mr-1 h-4 w-4" /> Send</>}
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Send</span></>}
                 </Button>
               </div>
             </div>
-            <p className="mt-2 text-center text-xs text-muted-foreground">
+            <p className="mt-2 hidden text-center text-xs text-muted-foreground sm:block">
               Press Enter to send · Shift+Enter for newline
             </p>
           </div>
