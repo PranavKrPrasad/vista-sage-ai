@@ -566,16 +566,40 @@ function MessageBubble({ msg }: { msg: ChatMsg }) {
           {msg.image_url && (
             <img src={msg.image_url} alt="Attached" className="mb-2 max-h-60 rounded-lg object-cover" />
           )}
+          {msg.generated_images && msg.generated_images.length > 0 && (
+            <div className="mb-2 space-y-2">
+              {msg.generated_images.map((imgUrl, idx) => (
+                <div key={idx} className="group relative">
+                  <img
+                    src={imgUrl}
+                    alt={`Generated ${idx + 1}`}
+                    className="max-h-96 w-full rounded-lg object-contain border border-border/30"
+                  />
+                  <a
+                    href={imgUrl}
+                    download={`jarvis-image-${idx + 1}.png`}
+                    className="absolute bottom-2 right-2 rounded-lg bg-background/80 px-3 py-1.5 text-xs font-medium opacity-0 backdrop-blur transition group-hover:opacity-100"
+                  >
+                    ⬇ Download
+                  </a>
+                  <div className="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-background/80 px-2 py-1 text-xs backdrop-blur">
+                    <Sparkles className="h-3 w-3 text-primary" /> AI Generated
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {msg.content && (
             <div className={`prose prose-sm prose-invert max-w-none ${isUser ? "text-foreground" : ""}`}>
               <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
           )}
-          {!msg.content && <span className="text-sm text-muted-foreground">…</span>}
+          {!msg.content && !msg.generated_images?.length && <span className="text-sm text-muted-foreground">…</span>}
         </div>
         <div className={`mt-1 text-xs text-muted-foreground ${isUser ? "text-right" : "text-left"}`}>
           {isUser ? "You" : "JARVIS"} · {time}
           {msg.emotion && isUser && ` · ${EMOTION_META[msg.emotion as Emotion]?.emoji ?? ""}`}
+          {msg.generated_images && msg.generated_images.length > 0 && !isUser && " · 🎨 Image"}
         </div>
       </div>
     </div>
