@@ -359,7 +359,7 @@ function ChatPanel({ userId }: { userId: string }) {
               <TtsWaveform
                 analyser={ttsAnalyser}
                 active={ttsActive}
-                className="h-8 w-32 opacity-90"
+                className="h-8 w-20 opacity-90 md:w-32"
               />
             )}
             <Button
