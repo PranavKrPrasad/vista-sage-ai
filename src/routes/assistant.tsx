@@ -63,12 +63,13 @@ function AssistantPage() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar tab={tab} setTab={setTab} signOut={signOut} />
-      <main className="flex flex-1 flex-col overflow-hidden">
+      <main className="flex flex-1 flex-col overflow-hidden pb-16 md:pb-0">
         {tab === "chat" && <ChatPanel userId={user.id} />}
         {tab === "tasks" && <RemindersPanel userId={user.id} />}
         {tab === "memory" && <MemoryPanel userId={user.id} />}
         {tab === "settings" && <SettingsPanel userId={user.id} />}
       </main>
+      <MobileNav tab={tab} setTab={setTab} signOut={signOut} />
     </div>
   );
 }
