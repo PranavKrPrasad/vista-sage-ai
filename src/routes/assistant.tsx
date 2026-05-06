@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmotionDetector, EMOTION_META, type Emotion } from "@/lib/emotion-detector";
 import { useSpeechRecognition } from "@/lib/speech-recognition";
-import { streamChat, speak } from "@/lib/assistant-client";
+import { streamChat, speak, generateImage, isImageGenRequest } from "@/lib/assistant-client";
 import { VoiceWaveform as TtsWaveform } from "@/components/VoiceWaveform";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
