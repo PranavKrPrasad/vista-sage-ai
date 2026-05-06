@@ -344,8 +344,12 @@ function ChatPanel({ userId }: { userId: string }) {
       {/* Chat column */}
       <section className="flex flex-1 flex-col">
         {/* Header */}
-        <header className="glass-strong flex items-center justify-between border-b border-border px-6 py-3">
-          <div>
+        <header className="glass-strong flex items-center justify-between border-b border-border px-4 py-3 md:px-6">
+          <div className="flex items-center gap-3">
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent md:hidden">
+              <Cpu className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <div>
             <h2 className="text-sm font-semibold tracking-wider text-muted-foreground">SESSION</h2>
             <p className="text-base font-medium">{greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}</p>
           </div>
