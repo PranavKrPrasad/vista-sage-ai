@@ -15,8 +15,8 @@ export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Sign in — JARVIS" },
-      { name: "description", content: "Sign in or create an account to access your JARVIS assistant." },
+      { title: "Sign in — VEERU" },
+      { name: "description", content: "Sign in or create an account to access your VEERU assistant." },
     ],
   }),
   component: AuthPage,
@@ -60,7 +60,7 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Welcome! Initializing JARVIS…");
+        toast.success("Welcome! Initializing VEERU…");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -80,7 +80,7 @@ function AuthPage() {
           <div className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent pulse-glow">
             <Cpu className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-lg font-bold tracking-wider">JARVIS</span>
+          <span className="text-lg font-bold tracking-wider">VEERU</span>
         </Link>
 
         <div className="glass-strong rounded-2xl p-8 shadow-2xl">
@@ -88,14 +88,14 @@ function AuthPage() {
             {mode === "signin" ? "Welcome back" : "Create account"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin" ? "Sign in to access your assistant." : "Activate your personalized JARVIS instance."}
+            {mode === "signin" ? "Sign in to access your assistant." : "Activate your personalized VEERU instance."}
           </p>
 
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             {mode === "signup" && (
               <div className="space-y-1.5">
                 <Label htmlFor="displayName">Name</Label>
-                <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Tony Stark" maxLength={60} />
+                <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your name" maxLength={60} />
               </div>
             )}
             <div className="space-y-1.5">

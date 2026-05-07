@@ -7,9 +7,9 @@ import { Cpu, Mic, Camera, Brain, Sparkles, Zap } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "JARVIS — Your Advanced AI Assistant" },
+      { title: "VEERU — Your Advanced AI Assistant" },
       { name: "description", content: "Voice, vision, and emotion-aware AI assistant. Remembers you. Adapts to you." },
-      { property: "og:title", content: "JARVIS — Advanced AI Assistant" },
+      { property: "og:title", content: "VEERU — Advanced AI Assistant" },
       { property: "og:description", content: "Multi-modal AI with real-time facial emotion detection and persistent memory." },
     ],
   }),
@@ -27,14 +27,14 @@ function Landing() {
   return (
     <main className="relative min-h-screen overflow-hidden">
       <div className="absolute inset-0 -z-10 opacity-40"
-        style={{ background: "radial-gradient(circle at 30% 20%, oklch(0.55 0.20 220 / 30%), transparent 50%), radial-gradient(circle at 70% 80%, oklch(0.50 0.22 280 / 25%), transparent 50%)" }} />
+        style={{ background: "radial-gradient(circle at 30% 20%, oklch(0.50 0.20 155 / 30%), transparent 50%), radial-gradient(circle at 70% 80%, oklch(0.45 0.18 130 / 25%), transparent 50%)" }} />
 
       <header className="container mx-auto flex items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent pulse-glow">
             <Cpu className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-lg font-bold tracking-wider">JARVIS</span>
+          <span className="text-lg font-bold tracking-wider">VEERU</span>
         </div>
         <div className="flex items-center gap-3">
           <Link to="/auth">
@@ -56,13 +56,13 @@ function Landing() {
           Meet your <span className="text-gradient">intelligent</span><br /> virtual assistant
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-          JARVIS speaks, listens, sees, and remembers. It detects your emotions in real-time
+          VEERU speaks, listens, sees, and remembers. It detects your emotions in real-time
           and adapts its responses to be empathetic, useful, and proactive.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <Link to="/auth" search={{ mode: "signup" }}>
             <Button size="lg" className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 pulse-glow">
-              Activate JARVIS <Zap className="ml-2 h-4 w-4" />
+              Activate VEERU <Zap className="ml-2 h-4 w-4" />
             </Button>
           </Link>
           <Link to="/auth">
@@ -73,7 +73,7 @@ function Landing() {
 
       <section className="container mx-auto grid gap-6 px-6 pb-24 md:grid-cols-3">
         {[
-          { icon: Mic, title: "Voice & Speech", desc: "Talk naturally. JARVIS responds with a calm, lifelike voice via ElevenLabs." },
+          { icon: Mic, title: "Voice & Speech", desc: "Talk naturally. VEERU responds with a calm, lifelike voice via ElevenLabs." },
           { icon: Camera, title: "Vision & Emotion", desc: "Real-time facial emotion detection. Upload images for analysis." },
           { icon: Brain, title: "Persistent Memory", desc: "Remembers your preferences, habits, and important facts across sessions." },
         ].map((f) => (
