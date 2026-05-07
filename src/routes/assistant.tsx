@@ -23,7 +23,7 @@ import {
 export const Route = createFileRoute("/assistant")({
   head: () => ({
     meta: [
-      { title: "Assistant — JARVIS" },
+      { title: "Assistant — VEERU" },
       { name: "description", content: "Your intelligent multi-modal assistant." },
     ],
   }),
@@ -87,7 +87,7 @@ function Sidebar({ tab, setTab, signOut }: { tab: string; setTab: (t: any) => vo
         <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent pulse-glow">
           <Cpu className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="text-lg font-bold tracking-wider">JARVIS</span>
+        <span className="text-lg font-bold tracking-wider">VEERU</span>
       </Link>
       <nav className="flex-1 space-y-1 p-3">
         {items.map((item) => (
@@ -418,7 +418,7 @@ function ChatPanel({ userId }: { userId: string }) {
                 <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-primary to-accent pulse-glow float-slow">
                   <Cpu className="h-7 w-7 text-primary-foreground" />
                 </div>
-                <h3 className="text-xl font-semibold">JARVIS online</h3>
+                <h3 className="text-xl font-semibold">VEERU online</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Ask me anything, generate images, analyze photos, or enable the camera so I can sense your mood.
                 </p>
@@ -463,7 +463,7 @@ function ChatPanel({ userId }: { userId: string }) {
                 value={input + (speech.interim ? " " + speech.interim : "")}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder={speech.listening ? "Listening…" : "Ask JARVIS anything…"}
+                placeholder={speech.listening ? "Listening…" : "Ask VEERU anything…"}
                 className="min-h-[60px] resize-none border-0 bg-transparent focus-visible:ring-0"
               />
               <div className="flex items-center justify-between px-2 pb-1">
@@ -588,7 +588,7 @@ function MessageBubble({ msg }: { msg: ChatMsg }) {
                   />
                   <a
                     href={imgUrl}
-                    download={`jarvis-image-${idx + 1}.png`}
+                    download={`veeru-image-${idx + 1}.png`}
                     className="absolute bottom-2 right-2 rounded-lg bg-background/80 px-3 py-1.5 text-xs font-medium opacity-0 backdrop-blur transition group-hover:opacity-100"
                   >
                     ⬇ Download
@@ -608,7 +608,7 @@ function MessageBubble({ msg }: { msg: ChatMsg }) {
           {!msg.content && !msg.generated_images?.length && <span className="text-sm text-muted-foreground">…</span>}
         </div>
         <div className={`mt-1 text-xs text-muted-foreground ${isUser ? "text-right" : "text-left"}`}>
-          {isUser ? "You" : "JARVIS"} · {time}
+          {isUser ? "You" : "VEERU"} · {time}
           {msg.emotion && isUser && ` · ${EMOTION_META[msg.emotion as Emotion]?.emoji ?? ""}`}
           {msg.generated_images && msg.generated_images.length > 0 && !isUser && " · 🎨 Image"}
         </div>
@@ -656,7 +656,7 @@ function RemindersPanel({ userId }: { userId: string }) {
     <div className="flex-1 overflow-y-auto p-6 md:p-10">
       <div className="mx-auto max-w-3xl">
         <h1 className="text-2xl font-bold">Tasks & reminders</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Things JARVIS will keep track of for you.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Things VEERU will keep track of for you.</p>
 
         <div className="glass mt-6 rounded-2xl p-4">
           <div className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
@@ -725,7 +725,7 @@ function MemoryPanel({ userId }: { userId: string }) {
     <div className="flex-1 overflow-y-auto p-6 md:p-10">
       <div className="mx-auto max-w-3xl">
         <h1 className="text-2xl font-bold">Long-term memory</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Facts and preferences JARVIS remembers across sessions.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Facts and preferences VEERU remembers across sessions.</p>
 
         <div className="glass mt-6 rounded-2xl p-4 space-y-2">
           <Textarea placeholder="e.g. I prefer concise responses. I'm a senior software engineer at Acme." value={content} onChange={(e) => setContent(e.target.value)} maxLength={500} />
@@ -794,7 +794,7 @@ function SettingsPanel({ userId }: { userId: string }) {
     <div className="flex-1 overflow-y-auto p-6 md:p-10">
       <div className="mx-auto max-w-2xl">
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Personalize how JARVIS sounds and responds.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Personalize how VEERU sounds and responds.</p>
 
         <div className="glass mt-6 space-y-5 rounded-2xl p-6">
           <div className="space-y-1.5">
