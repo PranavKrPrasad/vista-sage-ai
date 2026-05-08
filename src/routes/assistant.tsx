@@ -166,12 +166,16 @@ function VoiceWaveform({ active }: { active: boolean }) {
 }
 
 function ChatPanel({ userId }: { userId: string }) {
+  const { t } = useI18n();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [convSearch, setConvSearch] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [voiceModeOpen, setVoiceModeOpen] = useState(false);
 
   // Modes
   const [cameraOn, setCameraOn] = useState(false);
@@ -180,13 +184,40 @@ function ChatPanel({ userId }: { userId: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Hooks
-  const { videoRef, emotion, confidence, status: camStatus, error: camError } = useEmotionDetector(cameraOn);
-  const speechLang = profile?.preferred_language === "en" ? "en-US" : profile?.preferred_language || "en-US";
+  const { videoRef, emotion, confidence, faceDetected, status: camStatus, error: camError } = useEmotionDetector(cameraOn);
+  const speechLang = profile?.preferred_language === "hi" ? "hi-IN" : "en-US";
   const speech = useSpeechRecognition(speechLang);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [ttsAnalyser, setTtsAnalyser] = useState<AnalyserNode | null>(null);
   const [ttsActive, setTtsActive] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const loadConversations = async () => {
+    const { data } = await supabase.from("conversations").select("id,title,updated_at,pinned").eq("user_id", userId).order("pinned", { ascending: false }).order("updated_at", { ascending: false });
+    setConversations((data as Conversation[]) ?? []);
+  };
+  const loadMessages = async (id: string) => {
+    const { data } = await supabase.from("messages").select("*").eq("conversation_id", id).order("created_at");
+    setMessages((data as ChatMsg[]) ?? []);
+  };
+  const newChat = () => { setConversationId(null); setMessages([]); setInput(""); };
+  const deleteConv = async (id: string) => {
+    if (!confirm(t.confirmDelete)) return;
+    await supabase.from("messages").delete().eq("conversation_id", id);
+    await supabase.from("conversations").delete().eq("id", id);
+    if (conversationId === id) newChat();
+    loadConversations();
+  };
+  const renameConv = async (id: string, current: string) => {
+    const next = prompt(t.rename, current);
+    if (!next || next === current) return;
+    await supabase.from("conversations").update({ title: next.slice(0, 80) }).eq("id", id);
+    loadConversations();
+  };
+  const togglePin = async (c: Conversation) => {
+    await supabase.from("conversations").update({ pinned: !c.pinned }).eq("id", c.id);
+    loadConversations();
+  };
 
   // Load profile, memories, latest conversation
   useEffect(() => {
