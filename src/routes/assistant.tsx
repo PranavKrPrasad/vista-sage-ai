@@ -31,7 +31,7 @@ export const Route = createFileRoute("/assistant")({
   component: AssistantPage,
 });
 
-type ChatMsg = { id: string; role: "user" | "assistant"; content: string; emotion?: string | null; image_url?: string | null; generated_images?: string[]; created_at: string };
+type Conversation = { id: string; title: string; updated_at: string; pinned: boolean };
 type Reminder = { id: string; title: string; notes: string | null; due_at: string | null; completed: boolean };
 type Memory = { id: string; content: string; category: string; importance: number };
 type Profile = { id: string; display_name: string | null; preferred_language: string; voice_id: string; assistant_tone: string };
@@ -568,55 +568,7 @@ function ChatPanel({ userId }: { userId: string }) {
   );
 }
 
-function MessageBubble({ msg }: { msg: ChatMsg }) {
-  const isUser = msg.role === "user";
-  const time = new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-[85%] ${isUser ? "ml-12" : "mr-12"}`}>
-        <div className={`rounded-2xl px-4 py-3 ${isUser ? "bg-primary/15 border border-primary/30" : "glass"}`}>
-          {msg.image_url && (
-            <img src={msg.image_url} alt="Attached" className="mb-2 max-h-60 rounded-lg object-cover" />
-          )}
-          {msg.generated_images && msg.generated_images.length > 0 && (
-            <div className="mb-2 space-y-2">
-              {msg.generated_images.map((imgUrl, idx) => (
-                <div key={idx} className="group relative">
-                  <img
-                    src={imgUrl}
-                    alt={`Generated ${idx + 1}`}
-                    className="max-h-96 w-full rounded-lg object-contain border border-border/30"
-                  />
-                  <a
-                    href={imgUrl}
-                    download={`veeru-image-${idx + 1}.png`}
-                    className="absolute bottom-2 right-2 rounded-lg bg-background/80 px-3 py-1.5 text-xs font-medium opacity-0 backdrop-blur transition group-hover:opacity-100"
-                  >
-                    ⬇ Download
-                  </a>
-                  <div className="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-background/80 px-2 py-1 text-xs backdrop-blur">
-                    <Sparkles className="h-3 w-3 text-primary" /> AI Generated
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {msg.content && (
-            <div className={`prose prose-sm prose-invert max-w-none ${isUser ? "text-foreground" : ""}`}>
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
-            </div>
-          )}
-          {!msg.content && !msg.generated_images?.length && <span className="text-sm text-muted-foreground">…</span>}
-        </div>
-        <div className={`mt-1 text-xs text-muted-foreground ${isUser ? "text-right" : "text-left"}`}>
-          {isUser ? "You" : "VEERU"} · {time}
-          {msg.emotion && isUser && ` · ${EMOTION_META[msg.emotion as Emotion]?.emoji ?? ""}`}
-          {msg.generated_images && msg.generated_images.length > 0 && !isUser && " · 🎨 Image"}
-        </div>
-      </div>
-    </div>
-  );
-}
+// MessageBubble is imported from @/components/MessageBubble
 
 function RemindersPanel({ userId }: { userId: string }) {
   const [items, setItems] = useState<Reminder[]>([]);
