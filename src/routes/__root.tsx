@@ -1,6 +1,8 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth-context";
+import { I18nProvider } from "@/lib/i18n";
+import "katex/dist/katex.min.css";
 
 import appCss from "../styles.css?url";
 
@@ -31,17 +33,15 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "JARVIS — Advanced AI Virtual Assistant" },
-      { name: "description", content: "Multi-modal AI assistant with voice, vision, real-time emotion detection, and persistent memory." },
-      { name: "author", content: "JARVIS" },
-      { property: "og:title", content: "JARVIS — Advanced AI Virtual Assistant" },
-      { property: "og:description", content: "Multi-modal AI assistant with voice, vision, real-time emotion detection, and persistent memory." },
+      { title: "VEERU — Your AI Saathi" },
+      { name: "description", content: "Multi-modal AI assistant with voice, vision, real-time emotion detection, and persistent memory. Speaks Hindi & English." },
+      { name: "author", content: "VEERU" },
+      { property: "og:title", content: "VEERU — Your AI Saathi" },
+      { property: "og:description", content: "Voice, vision, memory and emotion-aware AI assistant." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "JARVIS — Advanced AI Virtual Assistant" },
-      { name: "twitter:description", content: "Multi-modal AI assistant with voice, vision, real-time emotion detection, and persistent memory." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/622b99bd-6dad-4a53-b1f2-b2dcc5d2025b" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/622b99bd-6dad-4a53-b1f2-b2dcc5d2025b" },
+      { name: "twitter:title", content: "VEERU — Your AI Saathi" },
+      { name: "twitter:description", content: "Voice, vision, memory and emotion-aware AI assistant." },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
@@ -66,9 +66,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <AuthProvider>
-      <Outlet />
-      <Toaster theme="dark" position="top-right" />
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <Outlet />
+        <Toaster theme="dark" position="top-right" />
+      </AuthProvider>
+    </I18nProvider>
   );
 }

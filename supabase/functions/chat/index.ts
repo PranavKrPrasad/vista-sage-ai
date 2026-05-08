@@ -21,12 +21,17 @@ Deno.serve(async (req) => {
       ? `\n\nThe user's currently detected emotion is: ${emotion}. Adapt your response empathetically — if sad/angry/fearful, be gentle and supportive; if happy, match their energy; if neutral, be warm and helpful.`
       : "";
 
+    const langInstruction = language === "hi"
+      ? "Reply in natural Hinglish (Hindi written in Roman/Latin script mixed with English) unless the user clearly writes in pure English. Keep code, math symbols, and technical terms in English."
+      : language === "auto"
+      ? "Auto-detect the user's language from their latest message and reply in the same language. Hindi messages get a Hinglish reply (Roman script)."
+      : `Respond in language: ${language || "en"}.`;
+
     const systemPrompt = `You are VEERU, an advanced AI virtual assistant — intelligent, witty, calm, and proactive. ` +
-      `Your communication tone should be: ${tone || "friendly"}. ` +
-      `Respond in language: ${language || "en"}. ` +
-      `You can help with conversation, answer questions, analyze images, generate images (the user can ask you to create/generate/draw images and it will be handled automatically), set reminders, perform web reasoning, and remember the user's preferences. ` +
-      `When the user asks you to generate/create/draw an image, acknowledge the request enthusiastically. The image generation is handled by the frontend — just respond with a brief, relevant description. ` +
-      `Keep responses concise and helpful. Use markdown when useful.${emotionContext}${memoryContext}`;
+      `Your communication tone should be: ${tone || "friendly"}. ${langInstruction} ` +
+      `You can analyze images, generate images (acknowledge briefly when the user asks), set reminders, and remember preferences. ` +
+      `Format math using LaTeX delimiters: $...$ for inline and $$...$$ for block equations (\\frac, \\int, \\sum, \\sqrt, matrices, etc.). Wrap code in fenced blocks with the language tag. Use markdown tables when appropriate. ` +
+      `Keep responses concise and helpful.${emotionContext}${memoryContext}`;
 
     // Build messages — last user msg can include image
     const apiMessages: any[] = [{ role: "system", content: systemPrompt }];

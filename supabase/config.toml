@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.image-gen]
 verify_jwt = false
+
+[functions.deepgram-token]
+verify_jwt = false
