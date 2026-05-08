@@ -99,7 +99,7 @@ const STRINGS = {
     save: "Save karein",
     confirmDelete: "Yeh chat delete karein?",
   },
-} as const;
+};
 
 type Dict = typeof STRINGS["en"];
 
