@@ -1,15 +1,16 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/lib/auth-context";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmotionDetector, EMOTION_META, type Emotion } from "@/lib/emotion-detector";
 import { useSpeechRecognition } from "@/lib/speech-recognition";
 import { streamChat, speak, generateImage, isImageGenRequest } from "@/lib/assistant-client";
 import { VoiceWaveform as TtsWaveform } from "@/components/VoiceWaveform";
+import { VoiceMode } from "@/components/VoiceMode";
+import { MessageBubble, type ChatMsg } from "@/components/MessageBubble";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,7 +18,7 @@ import { toast } from "sonner";
 import {
   Cpu, MessageSquare, ListTodo, Brain, Settings as SettingsIcon, LogOut,
   Send, Mic, MicOff, Image as ImageIcon, X, Plus, Trash2, Volume2, VolumeX,
-  Camera, CameraOff, Loader2, CheckCircle2, Circle, Sparkles,
+  Camera, CameraOff, Loader2, CheckCircle2, Circle, Radio, Search, Pin, Globe,
 } from "lucide-react";
 
 export const Route = createFileRoute("/assistant")({
