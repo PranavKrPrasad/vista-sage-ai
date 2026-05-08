@@ -158,4 +158,21 @@
     50% { transform: translateY(-6px); }
   }
   .float-slow { animation: float-slow 4s ease-in-out infinite; }
+  .hover-scale { transition: transform .2s ease; }
+  .hover-scale:hover { transform: scale(1.04); }
 }
+
+/* Modern scrollbar */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: oklch(0.40 0.06 155 / 40%);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover { background: oklch(0.55 0.10 155 / 60%); }
+* { scrollbar-width: thin; scrollbar-color: oklch(0.40 0.06 155 / 50%) transparent; }
+
+/* KaTeX dark-mode tweaks + line wrapping */
+.katex-display { overflow-x: auto; overflow-y: hidden; padding: .25rem 0; }
+.katex { color: var(--foreground); }
+.katex-display > .katex { white-space: normal; }
