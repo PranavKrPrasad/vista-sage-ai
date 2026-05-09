@@ -219,7 +219,7 @@ function ChatPanel({ userId }: { userId: string }) {
     loadConversations();
   };
 
-  // Load profile, memories, latest conversation
+  // Load profile, memories, all conversations + latest
   useEffect(() => {
     (async () => {
       const { data: p } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
@@ -228,7 +228,9 @@ function ChatPanel({ userId }: { userId: string }) {
       const { data: mems } = await supabase.from("memories").select("*").eq("user_id", userId).order("importance", { ascending: false }).limit(20);
       if (mems) setMemories(mems as Memory[]);
 
-      const { data: convs } = await supabase.from("conversations").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1);
+      await loadConversations();
+
+      const { data: convs } = await supabase.from("conversations").select("*").eq("user_id", userId).order("pinned", { ascending: false }).order("updated_at", { ascending: false }).limit(1);
       if (convs && convs[0]) {
         setConversationId(convs[0].id);
         const { data: msgs } = await supabase.from("messages").select("*").eq("conversation_id", convs[0].id).order("created_at");
@@ -236,6 +238,25 @@ function ChatPanel({ userId }: { userId: string }) {
       }
     })();
   }, [userId]);
+
+  const filteredConvs = useMemo(() => {
+    const q = convSearch.trim().toLowerCase();
+    if (!q) return conversations;
+    return conversations.filter((c) => c.title.toLowerCase().includes(q));
+  }, [conversations, convSearch]);
+  const pinnedConvs = filteredConvs.filter((c) => c.pinned);
+  const recentConvs = filteredConvs.filter((c) => !c.pinned);
+
+  const selectConv = async (id: string) => {
+    setConversationId(id);
+    await loadMessages(id);
+  };
+
+  const setLanguage = async (lang: "en" | "hi") => {
+    if (!profile) return;
+    setProfile({ ...profile, preferred_language: lang });
+    await supabase.from("profiles").update({ preferred_language: lang }).eq("id", userId);
+  };
 
   // Speech transcript → input
   useEffect(() => {
@@ -378,6 +399,7 @@ function ChatPanel({ userId }: { userId: string }) {
       } else {
         await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
       }
+      loadConversations();
     } catch (err: any) {
       toast.error(err.message || "Failed to send");
     } finally {
@@ -402,6 +424,40 @@ function ChatPanel({ userId }: { userId: string }) {
 
   return (
     <div className="flex flex-1 overflow-hidden">
+      {/* Chat history sidebar */}
+      <aside className="hidden w-64 flex-col border-r border-border bg-sidebar/40 md:flex">
+        <div className="flex items-center justify-between border-b border-border px-3 py-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t.chats}</span>
+          <Button size="sm" variant="ghost" onClick={newChat} title={t.newChat}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="border-b border-border p-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input value={convSearch} onChange={(e) => setConvSearch(e.target.value)} placeholder={t.searchChats} className="h-8 pl-7 text-xs" />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2 space-y-3">
+          {pinnedConvs.length > 0 && (
+            <div>
+              <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{t.pinned}</div>
+              {pinnedConvs.map((c) => (
+                <ConvItem key={c.id} c={c} active={c.id === conversationId} onSelect={selectConv} onRename={renameConv} onDelete={deleteConv} onPin={togglePin} t={t} />
+              ))}
+            </div>
+          )}
+          <div>
+            {pinnedConvs.length > 0 && <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{t.recent}</div>}
+            {recentConvs.length === 0 && pinnedConvs.length === 0 ? (
+              <p className="px-2 py-4 text-center text-xs text-muted-foreground">No chats yet</p>
+            ) : recentConvs.map((c) => (
+              <ConvItem key={c.id} c={c} active={c.id === conversationId} onSelect={selectConv} onRename={renameConv} onDelete={deleteConv} onPin={togglePin} t={t} />
+            ))}
+          </div>
+        </div>
+      </aside>
+
       {/* Chat column */}
       <section className="flex flex-1 flex-col">
         {/* Header */}
@@ -411,7 +467,7 @@ function ChatPanel({ userId }: { userId: string }) {
               <Cpu className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold tracking-wider text-muted-foreground">SESSION</h2>
+              <h2 className="text-sm font-semibold tracking-wider text-muted-foreground">{t.sessionGreeting.toUpperCase()}</h2>
               <p className="text-base font-medium">{greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}</p>
             </div>
           </div>
@@ -420,9 +476,33 @@ function ChatPanel({ userId }: { userId: string }) {
               <TtsWaveform
                 analyser={ttsAnalyser}
                 active={ttsActive}
-                className="h-8 w-20 opacity-90 md:w-32"
+                className="hidden h-8 w-20 opacity-90 sm:block md:w-32"
               />
             )}
+            {/* Language toggle */}
+            <div className="flex items-center rounded-md border border-border bg-background/40 text-xs">
+              {(["en", "hi"] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLanguage(l)}
+                  className={`flex items-center gap-1 px-2 py-1 transition ${
+                    profile?.preferred_language === l ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {l === "en" ? "EN" : "HI"}
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setVoiceModeOpen(true)}
+              title={t.voiceMode}
+              className="gap-1"
+            >
+              <Radio className="h-4 w-4" />
+              <span className="hidden md:inline">{t.voiceMode}</span>
+            </Button>
             <Button
               variant={voiceReplyOn ? "default" : "outline"}
               size="sm"
@@ -580,7 +660,11 @@ function ChatPanel({ userId }: { userId: string }) {
             </div>
           ) : (
             <div className="mt-2 text-sm text-muted-foreground">
-              {cameraOn ? "Searching for face…" : "Enable camera to detect"}
+              {!cameraOn ? t.enableCamera : !faceDetected ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/15 px-2 py-0.5 text-xs text-destructive">
+                  <span className="h-1.5 w-1.5 rounded-full bg-destructive animate-pulse" /> {t.noFace}
+                </span>
+              ) : t.searchingFace}
             </div>
           )}
         </div>
@@ -595,6 +679,59 @@ function ChatPanel({ userId }: { userId: string }) {
           </ul>
         </div>
       </aside>
+
+      <VoiceMode
+        open={voiceModeOpen}
+        onClose={() => setVoiceModeOpen(false)}
+        voiceId={profile?.voice_id}
+        language={profile?.preferred_language}
+        tone={profile?.assistant_tone}
+        memories={memories.map((m) => m.content)}
+      />
+    </div>
+  );
+}
+
+function ConvItem({
+  c, active, onSelect, onRename, onDelete, onPin, t,
+}: {
+  c: Conversation;
+  active: boolean;
+  onSelect: (id: string) => void;
+  onRename: (id: string, current: string) => void;
+  onDelete: (id: string) => void;
+  onPin: (c: Conversation) => void;
+  t: any;
+}) {
+  return (
+    <div
+      className={`group flex items-center gap-1 rounded-md px-2 py-1.5 text-sm transition cursor-pointer ${
+        active ? "bg-primary/15 text-primary" : "text-sidebar-foreground hover:bg-sidebar-accent"
+      }`}
+      onClick={() => onSelect(c.id)}
+    >
+      <span className="flex-1 truncate">{c.title || "Untitled"}</span>
+      <button
+        onClick={(e) => { e.stopPropagation(); onPin(c); }}
+        className={`transition ${c.pinned ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"}`}
+        title={c.pinned ? t.unpin : t.pin}
+      >
+        <Pin className="h-3.5 w-3.5" />
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onRename(c.id, c.title); }}
+        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition text-xs px-1"
+        title={t.rename}
+      >
+        ✎
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(c.id); }}
+        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition"
+        title={t.delete}
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
