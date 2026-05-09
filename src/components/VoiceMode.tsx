@@ -1,27 +1,25 @@
-// Live voice mode: Deepgram Streaming STT + ElevenLabs TTS.
+// Free live voice mode: Browser Web Speech API (SpeechRecognition + speechSynthesis).
+// No API keys required. Works in Chrome/Edge/Safari.
 import { useEffect, useRef, useState } from "react";
 import { Mic, X, Loader2, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { streamChat, speak } from "@/lib/assistant-client";
+import { streamChat } from "@/lib/assistant-client";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  voiceId?: string;
+  voiceId?: string; // ignored in free mode
   language?: string;
   tone?: string;
   memories?: string[];
   onTurn?: (userText: string, aiText: string) => void;
 }
 
-type State = "idle" | "connecting" | "listening" | "thinking" | "speaking";
+type State = "idle" | "listening" | "thinking" | "speaking";
 
-export function VoiceMode({ open, onClose, voiceId, language, tone, memories, onTurn }: Props) {
+export function VoiceMode({ open, onClose, language, tone, memories, onTurn }: Props) {
   const { t } = useI18n();
   const [state, setState] = useState<State>("idle");
   const [partial, setPartial] = useState("");
@@ -29,42 +27,39 @@ export function VoiceMode({ open, onClose, voiceId, language, tone, memories, on
   const [lastAi, setLastAi] = useState("");
   const [muted, setMuted] = useState(false);
   const [level, setLevel] = useState(0);
+  const [supported, setSupported] = useState(true);
+
   const historyRef = useRef<{ role: "user" | "assistant"; content: string }[]>([]);
-  const wsRef = useRef<WebSocket | null>(null);
+  const recRef = useRef<any>(null);
   const mediaRef = useRef<MediaStream | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+  const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
   const closingRef = useRef(false);
-  const silenceTimerRef = useRef<number | null>(null);
-  const finalTextRef = useRef("");
+  const restartTimerRef = useRef<number | null>(null);
+  const stateRef = useRef<State>("idle");
+
+  useEffect(() => { stateRef.current = state; }, [state]);
 
   useEffect(() => {
     if (open) start();
-    return () => {
-      stop();
-    };
+    return () => { stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const stopTts = () => {
-    if (ttsAudioRef.current) {
-      try { ttsAudioRef.current.pause(); } catch {}
-      ttsAudioRef.current = null;
-    }
+    try { window.speechSynthesis?.cancel(); } catch {}
+    utterRef.current = null;
   };
 
   const stop = () => {
     closingRef.current = true;
     stopTts();
-    try { wsRef.current?.close(); } catch {}
-    wsRef.current = null;
-    try { recorderRef.current?.stop(); } catch {}
-    recorderRef.current = null;
+    try { recRef.current?.stop(); } catch {}
+    recRef.current = null;
     mediaRef.current?.getTracks().forEach((t) => t.stop());
     mediaRef.current = null;
-    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+    if (restartTimerRef.current) { clearTimeout(restartTimerRef.current); restartTimerRef.current = null; }
     if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
       audioCtxRef.current.close().catch(() => {});
     }
@@ -72,19 +67,71 @@ export function VoiceMode({ open, onClose, voiceId, language, tone, memories, on
     analyserRef.current = null;
   };
 
+  const startRecognition = () => {
+    if (closingRef.current) return;
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { setSupported(false); return; }
+    const r = new SR();
+    r.continuous = true;
+    r.interimResults = true;
+    r.lang = language === "hi" ? "hi-IN" : "en-US";
+
+    let finalBuf = "";
+    let lastResultAt = Date.now();
+    let endTimer: number | null = null;
+
+    const scheduleEnd = () => {
+      if (endTimer) clearTimeout(endTimer);
+      endTimer = window.setTimeout(() => {
+        const text = finalBuf.trim();
+        if (text && stateRef.current === "listening") {
+          finalBuf = "";
+          handleUtterance(text);
+        }
+      }, 900);
+    };
+
+    r.onresult = (e: any) => {
+      lastResultAt = Date.now();
+      // user spoke — interrupt TTS
+      if (utterRef.current) stopTts();
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const res = e.results[i];
+        if (res.isFinal) finalBuf += res[0].transcript + " ";
+        else interim += res[0].transcript;
+      }
+      setPartial((finalBuf + interim).trim());
+      scheduleEnd();
+    };
+    r.onerror = (e: any) => {
+      if (e?.error === "not-allowed") {
+        toast.error("Microphone access denied");
+        onClose();
+        return;
+      }
+    };
+    r.onend = () => {
+      if (closingRef.current) return;
+      // auto-restart for continuous listening
+      restartTimerRef.current = window.setTimeout(() => {
+        try { r.start(); } catch {}
+      }, 250);
+    };
+
+    recRef.current = r;
+    try { r.start(); } catch {}
+  };
+
   const start = async () => {
     closingRef.current = false;
-    setState("connecting");
     try {
-      // 1) Get ephemeral Deepgram key
-      const tokRes = await fetch(`${SUPABASE_URL}/functions/v1/deepgram-token`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${SUPABASE_KEY}` },
-      });
-      if (!tokRes.ok) throw new Error("Voice key error");
-      const { key } = await tokRes.json();
-
-      // 2) Get mic
+      const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SR) {
+        setSupported(false);
+        toast.error("Voice mode needs Chrome, Edge or Safari");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
@@ -108,57 +155,34 @@ export function VoiceMode({ open, onClose, voiceId, language, tone, memories, on
       };
       tick();
 
-      // 3) Deepgram WS — Hindi+English bilingual via "multi"
-      const lang = language === "hi" ? "multi" : language === "en" ? "en" : "multi";
-      const url =
-        `wss://api.deepgram.com/v1/listen?model=nova-3&language=${lang}` +
-        `&interim_results=true&smart_format=true&punctuate=true&endpointing=600&vad_events=true`;
-      const ws = new WebSocket(url, ["token", key]);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        setState("listening");
-        const mr = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
-        recorderRef.current = mr;
-        mr.ondataavailable = (e) => {
-          if (e.data.size > 0 && ws.readyState === 1) ws.send(e.data);
-        };
-        mr.start(250);
-      };
-
-      ws.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (data.type === "Results") {
-            const alt = data.channel?.alternatives?.[0];
-            if (!alt) return;
-            const text = alt.transcript;
-            if (!text) return;
-            if (data.is_final) {
-              finalTextRef.current = (finalTextRef.current + " " + text).trim();
-              setPartial(finalTextRef.current);
-              if (data.speech_final) {
-                handleUtterance(finalTextRef.current);
-                finalTextRef.current = "";
-              }
-            } else {
-              setPartial((finalTextRef.current + " " + text).trim());
-              // user started speaking — interrupt TTS
-              if (ttsAudioRef.current) stopTts();
-            }
-          }
-        } catch {}
-      };
-      ws.onerror = () => {
-        if (!closingRef.current) toast.error("Voice connection error");
-      };
-      ws.onclose = () => {
-        if (!closingRef.current) setState("idle");
-      };
+      setState("listening");
+      startRecognition();
     } catch (e: any) {
-      toast.error(e.message || "Voice mode failed");
+      toast.error(e?.message || "Voice mode failed");
       onClose();
     }
+  };
+
+  const speakBrowser = (text: string) => {
+    return new Promise<void>((resolve) => {
+      try {
+        const synth = window.speechSynthesis;
+        if (!synth) { resolve(); return; }
+        synth.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = language === "hi" ? "hi-IN" : "en-US";
+        u.rate = 1;
+        u.pitch = 1;
+        // pick a matching voice if available
+        const voices = synth.getVoices();
+        const match = voices.find((v) => v.lang?.toLowerCase().startsWith(u.lang.toLowerCase().split("-")[0]));
+        if (match) u.voice = match;
+        u.onend = () => resolve();
+        u.onerror = () => resolve();
+        utterRef.current = u;
+        synth.speak(u);
+      } catch { resolve(); }
+    });
   };
 
   const handleUtterance = async (text: string) => {
@@ -183,22 +207,19 @@ export function VoiceMode({ open, onClose, voiceId, language, tone, memories, on
 
       if (!muted && acc.trim()) {
         setState("speaking");
-        const result = await speak(acc, voiceId);
-        if (result) {
-          ttsAudioRef.current = result.audio;
-          result.audio.addEventListener("ended", () => {
-            ttsAudioRef.current = null;
-            if (!closingRef.current) setState("listening");
-          });
-        } else {
-          setState("listening");
-        }
-      } else {
-        setState("listening");
+        // Strip markdown / latex for cleaner speech
+        const clean = acc
+          .replace(/```[\s\S]*?```/g, "")
+          .replace(/\$\$[\s\S]*?\$\$/g, "")
+          .replace(/\$[^$]*\$/g, "")
+          .replace(/[*_#`>~]/g, "")
+          .trim();
+        await speakBrowser(clean || acc);
       }
+      if (!closingRef.current) setState("listening");
     } catch (e: any) {
-      toast.error(e.message || "Reply failed");
-      setState("listening");
+      toast.error(e?.message || "Reply failed");
+      if (!closingRef.current) setState("listening");
     }
   };
 
@@ -217,7 +238,6 @@ export function VoiceMode({ open, onClose, voiceId, language, tone, memories, on
         </Button>
       </div>
 
-      {/* Orb */}
       <div className="relative grid h-72 w-72 place-items-center">
         <div
           className="absolute inset-0 rounded-full bg-gradient-to-br from-primary to-accent opacity-30 blur-3xl transition-transform duration-150"
@@ -227,7 +247,7 @@ export function VoiceMode({ open, onClose, voiceId, language, tone, memories, on
           className="grid h-44 w-44 place-items-center rounded-full bg-gradient-to-br from-primary to-accent shadow-[0_0_60px_rgba(34,197,94,0.6)] transition-transform duration-150"
           style={{ transform: `scale(${orbScale})` }}
         >
-          {state === "connecting" || state === "thinking" ? (
+          {state === "thinking" ? (
             <Loader2 className="h-10 w-10 animate-spin text-primary-foreground" />
           ) : (
             <Mic className="h-12 w-12 text-primary-foreground" />
@@ -237,7 +257,6 @@ export function VoiceMode({ open, onClose, voiceId, language, tone, memories, on
 
       <div className="mt-8 text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-primary/80">
-          {state === "connecting" && "Connecting…"}
           {state === "listening" && t.listening}
           {state === "thinking" && t.thinking}
           {state === "speaking" && t.speaking}
@@ -247,6 +266,12 @@ export function VoiceMode({ open, onClose, voiceId, language, tone, memories, on
         {lastAi && (
           <p className="mt-4 max-w-xl px-6 text-sm text-muted-foreground line-clamp-3">{lastAi}</p>
         )}
+        {!supported && (
+          <p className="mt-4 max-w-md px-6 text-xs text-destructive">
+            Your browser doesn't support free voice. Use Chrome, Edge or Safari.
+          </p>
+        )}
+        <p className="mt-4 text-[10px] uppercase tracking-widest text-muted-foreground/60">Free voice · no API key</p>
       </div>
     </div>
   );
