@@ -674,6 +674,59 @@ function ChatPanel({ userId }: { userId: string }) {
           </ul>
         </div>
       </aside>
+
+      <VoiceMode
+        open={voiceModeOpen}
+        onClose={() => setVoiceModeOpen(false)}
+        voiceId={profile?.voice_id}
+        language={profile?.preferred_language}
+        tone={profile?.assistant_tone}
+        memories={memories.map((m) => m.content)}
+      />
+    </div>
+  );
+}
+
+function ConvItem({
+  c, active, onSelect, onRename, onDelete, onPin, t,
+}: {
+  c: Conversation;
+  active: boolean;
+  onSelect: (id: string) => void;
+  onRename: (id: string, current: string) => void;
+  onDelete: (id: string) => void;
+  onPin: (c: Conversation) => void;
+  t: any;
+}) {
+  return (
+    <div
+      className={`group flex items-center gap-1 rounded-md px-2 py-1.5 text-sm transition cursor-pointer ${
+        active ? "bg-primary/15 text-primary" : "text-sidebar-foreground hover:bg-sidebar-accent"
+      }`}
+      onClick={() => onSelect(c.id)}
+    >
+      <span className="flex-1 truncate">{c.title || "Untitled"}</span>
+      <button
+        onClick={(e) => { e.stopPropagation(); onPin(c); }}
+        className={`transition ${c.pinned ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"}`}
+        title={c.pinned ? t.unpin : t.pin}
+      >
+        <Pin className="h-3.5 w-3.5" />
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onRename(c.id, c.title); }}
+        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition text-xs px-1"
+        title={t.rename}
+      >
+        ✎
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(c.id); }}
+        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition"
+        title={t.delete}
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
