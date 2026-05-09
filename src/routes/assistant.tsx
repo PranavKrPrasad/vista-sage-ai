@@ -219,7 +219,7 @@ function ChatPanel({ userId }: { userId: string }) {
     loadConversations();
   };
 
-  // Load profile, memories, latest conversation
+  // Load profile, memories, all conversations + latest
   useEffect(() => {
     (async () => {
       const { data: p } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
@@ -228,7 +228,9 @@ function ChatPanel({ userId }: { userId: string }) {
       const { data: mems } = await supabase.from("memories").select("*").eq("user_id", userId).order("importance", { ascending: false }).limit(20);
       if (mems) setMemories(mems as Memory[]);
 
-      const { data: convs } = await supabase.from("conversations").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1);
+      await loadConversations();
+
+      const { data: convs } = await supabase.from("conversations").select("*").eq("user_id", userId).order("pinned", { ascending: false }).order("updated_at", { ascending: false }).limit(1);
       if (convs && convs[0]) {
         setConversationId(convs[0].id);
         const { data: msgs } = await supabase.from("messages").select("*").eq("conversation_id", convs[0].id).order("created_at");
@@ -236,6 +238,25 @@ function ChatPanel({ userId }: { userId: string }) {
       }
     })();
   }, [userId]);
+
+  const filteredConvs = useMemo(() => {
+    const q = convSearch.trim().toLowerCase();
+    if (!q) return conversations;
+    return conversations.filter((c) => c.title.toLowerCase().includes(q));
+  }, [conversations, convSearch]);
+  const pinnedConvs = filteredConvs.filter((c) => c.pinned);
+  const recentConvs = filteredConvs.filter((c) => !c.pinned);
+
+  const selectConv = async (id: string) => {
+    setConversationId(id);
+    await loadMessages(id);
+  };
+
+  const setLanguage = async (lang: "en" | "hi") => {
+    if (!profile) return;
+    setProfile({ ...profile, preferred_language: lang });
+    await supabase.from("profiles").update({ preferred_language: lang }).eq("id", userId);
+  };
 
   // Speech transcript → input
   useEffect(() => {
