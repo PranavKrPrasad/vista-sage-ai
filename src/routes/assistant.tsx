@@ -399,6 +399,7 @@ function ChatPanel({ userId }: { userId: string }) {
       } else {
         await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
       }
+      loadConversations();
     } catch (err: any) {
       toast.error(err.message || "Failed to send");
     } finally {
