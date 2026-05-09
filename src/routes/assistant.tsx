@@ -659,7 +659,11 @@ function ChatPanel({ userId }: { userId: string }) {
             </div>
           ) : (
             <div className="mt-2 text-sm text-muted-foreground">
-              {cameraOn ? "Searching for face…" : "Enable camera to detect"}
+              {!cameraOn ? t.enableCamera : !faceDetected ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/15 px-2 py-0.5 text-xs text-destructive">
+                  <span className="h-1.5 w-1.5 rounded-full bg-destructive animate-pulse" /> {t.noFace}
+                </span>
+              ) : t.searchingFace}
             </div>
           )}
         </div>
