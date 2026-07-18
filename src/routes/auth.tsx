@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,16 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Cpu, Loader2 } from "lucide-react";
 
-const searchSchema = z.object({ mode: z.enum(["signin", "signup"]).optional().default("signin") });
+const searchSchema = z.object({
+  mode: z.enum(["signin", "signup"]).optional().default("signin"),
+  next: z.string().optional(),
+});
+
+// Only allow same-origin relative paths as post-auth destinations.
+function safeNext(next: string | undefined): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
 
 export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
@@ -29,7 +38,7 @@ const credSchema = z.object({
 });
 
 function AuthPage() {
-  const navigate = useNavigate();
+  
   const { user, loading } = useAuth();
   const search = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">(search.mode);
@@ -39,8 +48,11 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/assistant" });
-  }, [user, loading, navigate]);
+    if (!loading && user) {
+      const dest = safeNext(search.next) ?? "/assistant";
+      window.location.href = dest;
+    }
+  }, [user, loading, search.next]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,10 +64,11 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
+        const dest = safeNext(search.next) ?? "/assistant";
         const { error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: `${window.location.origin}/assistant`,
+            emailRedirectTo: `${window.location.origin}${dest}`,
             data: { display_name: displayName },
           },
         });
