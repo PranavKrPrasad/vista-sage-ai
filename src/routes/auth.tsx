@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +38,7 @@ const credSchema = z.object({
 });
 
 function AuthPage() {
-  const navigate = useNavigate();
+  
   const { user, loading } = useAuth();
   const search = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">(search.mode);
