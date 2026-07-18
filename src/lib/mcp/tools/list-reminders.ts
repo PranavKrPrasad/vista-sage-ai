@@ -21,7 +21,7 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ pending_only, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    let q = client(ctx.getToken())
+    let q = client(ctx.getToken()!)
       .from("reminders")
       .select("id, title, notes, due_at, completed, created_at")
       .order("due_at", { ascending: true, nullsFirst: false })

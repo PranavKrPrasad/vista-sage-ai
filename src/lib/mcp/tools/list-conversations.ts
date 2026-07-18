@@ -20,7 +20,7 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }, ctx) => {
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const { data, error } = await client(ctx.getToken())
+    const { data, error } = await client(ctx.getToken()!)
       .from("conversations")
       .select("id, title, pinned, updated_at")
       .order("updated_at", { ascending: false })

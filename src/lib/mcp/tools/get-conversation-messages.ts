@@ -21,7 +21,7 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ conversation_id, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const { data, error } = await client(ctx.getToken())
+    const { data, error } = await client(ctx.getToken()!)
       .from("messages")
       .select("id, role, content, emotion, created_at")
       .eq("conversation_id", conversation_id)

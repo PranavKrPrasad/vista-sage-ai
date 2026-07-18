@@ -22,7 +22,7 @@ export default defineTool({
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async ({ title, notes, due_at }, ctx) => {
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const { data, error } = await client(ctx.getToken())
+    const { data, error } = await client(ctx.getToken()!)
       .from("reminders")
       .insert({ user_id: ctx.getUserId()!, title, notes: notes ?? null, due_at: due_at ?? null })
       .select("id, title, notes, due_at, completed, created_at")

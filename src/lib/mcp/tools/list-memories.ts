@@ -21,7 +21,7 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ category, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    let q = client(ctx.getToken())
+    let q = client(ctx.getToken()!)
       .from("memories")
       .select("id, content, category, importance, created_at")
       .order("importance", { ascending: false })

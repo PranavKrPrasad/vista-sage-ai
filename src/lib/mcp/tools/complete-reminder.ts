@@ -18,7 +18,7 @@ export default defineTool({
   annotations: { readOnlyHint: false, idempotentHint: true, openWorldHint: false },
   handler: async ({ id }, ctx) => {
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const { data, error } = await client(ctx.getToken())
+    const { data, error } = await client(ctx.getToken()!)
       .from("reminders")
       .update({ completed: true })
       .eq("id", id)

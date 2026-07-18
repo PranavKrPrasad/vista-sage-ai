@@ -22,7 +22,7 @@ export default defineTool({
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async ({ content, category, importance }, ctx) => {
     if (!ctx.isAuthenticated()) return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
-    const { data, error } = await client(ctx.getToken())
+    const { data, error } = await client(ctx.getToken()!)
       .from("memories")
       .insert({
         user_id: ctx.getUserId()!,
